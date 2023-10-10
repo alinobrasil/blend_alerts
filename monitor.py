@@ -7,6 +7,26 @@ from thegraph import get_lien_info
 from pprint import pprint
 from datetime import datetime
 
+class MessageHistory:
+    def __init__(self):
+        self.messages = {}
+
+    def add_message(self, user_id, message):
+        current_time = time.time()
+        self.messages[user_id] = self.messages.get(user_id, [])
+        self.messages[user_id].append((message, current_time))
+
+        # Remove messages older than an hour (3600 seconds)
+        self.messages[user_id] = [msg for msg in self.messages[user_id] if current_time - msg[1] < 3600]
+
+    def message_exists(self, user_id, message):
+        if user_id in self.messages:
+            for msg, msg_time in self.messages[user_id]:
+                if msg == message:
+                    return True
+        return False
+
+
 ## set the wait time. eg 1 minute
 wait_time = 1*60  
 
@@ -31,7 +51,7 @@ def send_telegram_alert(user_id, lien):
     loan_details=""
     if len(lien['loans']) > 0:
         loanAmount = int(lien['loans'][0]['loanAmount'])/10**18
-        loan_details=f"\n\
+        loan_details=f"\
             \nLoan amount: {loanAmount:.2f} ETH\
             \nInterest rate: {int(lien['loans'][0]['rate'])/100}%\
             \nLender: {lien['loans'][0]['lender']}"
@@ -44,7 +64,7 @@ def send_telegram_alert(user_id, lien):
             \nCollection address: {lien['collection']}\
             \nToken ID: {lien['tokenId']}  \
             \n{loan_details} \
-            \nAuction started: {datetime.fromtimestamp(auctionStartTime)}            "
+            \nAuction started: {datetime.fromtimestamp(auctionStartTime)} "
     )
 
 
@@ -52,6 +72,7 @@ def send_telegram_alert(user_id, lien):
 
 
 def alert_service():
+    message_history = MessageHistory()
     while True:
         print("checking for alerts... ", datetime.now())
         # list of users & addresses they subscribed to
@@ -70,8 +91,16 @@ def alert_service():
             # if there's a match in our subscription list, send them alert
             for user in subscribed_addresses:
                 if lien['borrower'] == user['address']:
-                    print("\n***** Found match: ", lien['borrower'])
-                    send_telegram_alert(user['user_id'], lien)
+                    message = f"{lien['collection']}_{lien['tokenId']}_{lien['auctionStarted']}_{lien['borrower']}"
+
+                    print(message)
+                    print(message_history.message_exists(user['user_id'], message))
+
+                    if not message_history.message_exists(user['user_id'], message):
+                        ## only send message once. 
+                        print("\n***** Found match: ", lien['borrower'])
+                        send_telegram_alert(user['user_id'], lien)
+                        message_history.add_message(user['user_id'], message)
                 # end if
             # end loop
         # end for loop
