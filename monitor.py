@@ -7,6 +7,7 @@ from thegraph import get_lien_info
 from pprint import pprint
 from datetime import datetime
 
+## for storing history of messages sent to each user
 class MessageHistory:
     def __init__(self):
         self.messages = {}

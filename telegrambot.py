@@ -12,6 +12,20 @@ load_dotenv()
 
 
 TOKEN = os.getenv("BOT_TOKEN")
+HELP_TEXT = """
+Here are the commands you can use with this bot:
+
+/past_hour
+    -see all auctions started in the past hour
+
+/subsribe <borrower address>
+    -subscribe to liquidation alerts for your wallet address. You'll be notified as soon as an auction is started on your collateral.
+    eg:
+    /subscribe 0x1234567890abcdef1234567890abcdef1234567
+
+/help - show this help text
+
+"""
 
 
 def start(update, context):
@@ -41,7 +55,13 @@ def start(update, context):
                        (user_id, display_name, username))
         conn.commit()
 
-    update.message.reply_text(f'Hello, {first_name}!\n\n{user_info}')
+    update.message.reply_text(f'Hello {first_name}!\n\n{HELP_TEXT}')
+
+def help(update, context):
+    """help text to guide user on how to use the bot"""
+    update.message.reply_text(HELP_TEXT)
+
+
 
 
 def send_chunks(update, data, chunk_size=5):
@@ -171,6 +191,7 @@ def main():
 
     # Register the command handler
     dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", help))
     dp.add_handler(CommandHandler("subscribe", subscribe))
     dp.add_handler(CommandHandler("past_hour", past_hour))
 
